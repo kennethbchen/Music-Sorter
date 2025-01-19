@@ -23,8 +23,13 @@ fn main() {
     let output_path = &config.get_string("output_folder").unwrap();
     let output_path: &Path = Path::new(output_path);
 
+    assert!(input_path.try_exists().expect("Could not check if input folder exists."), "Input folder does not exist!");
+    assert!(output_path.try_exists().expect("Could not check if output folder exists."), "Output folder does not exist!");
+
     println!("{:?}", input_path);
     println!("{:?}", output_path);
+    
+    
     
 }
 
