@@ -44,7 +44,22 @@ fn main() {
     for entry in fs::read_dir(&settings.input_path).unwrap() {
         let entry = entry.unwrap();
 
-        println!("{:?}", entry.path());
+        if entry.path().is_dir() {
+            println!("Directory");
+            continue;
+        }
+
+        match entry.path().extension() {
+            Some(extension_str) => {
+                match extension_str.to_str().unwrap() {
+                    "zip" => println!("Zip"),
+                    "mp3" => println!("Mp3"),
+                    _ => println!("{:?} unsupported. skipping... ", extension_str)
+                }
+            }
+            None => ()
+        }
+        
 
     }
 
