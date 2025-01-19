@@ -1,8 +1,13 @@
-use std::{collections::HashMap, path::Path};
+use std::{collections::HashMap, path::{Path, PathBuf}, str::FromStr};
 
 use config::Config;
 
-fn main() {
+struct AppSettings {
+    input_path: PathBuf,
+    output_path: PathBuf
+}
+
+fn parse_config() -> AppSettings {
 
     // Parse config file
     let config = Config::builder()
@@ -18,18 +23,27 @@ fn main() {
 
     // Get settings from config file
     let input_path = &config.get_string("input_folder").unwrap();
-    let input_path: &Path = Path::new(input_path);
+    let input_path: PathBuf = PathBuf::from_str(input_path).unwrap();
 
     let output_path = &config.get_string("output_folder").unwrap();
-    let output_path: &Path = Path::new(output_path);
+    let output_path: PathBuf = PathBuf::from_str(output_path).unwrap();
 
+    // Validate
     assert!(input_path.try_exists().expect("Could not check if input folder exists."), "Input folder does not exist!");
     assert!(output_path.try_exists().expect("Could not check if output folder exists."), "Output folder does not exist!");
 
-    println!("{:?}", input_path);
-    println!("{:?}", output_path);
+    return AppSettings {
+        input_path,
+        output_path
+    }
+}
+fn main() {
     
-    
-    
+    let settings: AppSettings = parse_config();
+
+    println!("{:?}", settings.input_path);
+    println!("{:?}", settings.output_path);
+
+
 }
 
