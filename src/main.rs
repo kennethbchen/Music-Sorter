@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::{Path, PathBuf}, str::FromStr};
+use std::{collections::HashMap, fs, path::{Path, PathBuf}, str::FromStr};
 
 use config::Config;
 
@@ -41,8 +41,12 @@ fn main() {
     
     let settings: AppSettings = parse_config();
 
-    println!("{:?}", settings.input_path);
-    println!("{:?}", settings.output_path);
+    for entry in fs::read_dir(&settings.input_path).unwrap() {
+        let entry = entry.unwrap();
+
+        println!("{:?}", entry.path());
+
+    }
 
 
 }
