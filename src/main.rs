@@ -7,6 +7,40 @@ struct AppSettings {
     output_path: PathBuf
 }
 
+enum SupportedInput {
+    Dir(PathBuf),
+    Zip(PathBuf),
+    Mp3(PathBuf)
+}
+
+
+impl SupportedInput {
+    fn from(path: PathBuf) -> Option<SupportedInput> {
+
+        if path.is_dir() {
+            return Option::Some(SupportedInput::Dir(path));
+        }
+
+        match path.extension() {
+            Some(extension_str) => {
+
+                match extension_str.to_str().unwrap() {
+                    "zip" => {
+                        return Option::Some(SupportedInput::Zip(path));
+                    },
+                    "mp3" => {
+                        return Option::Some(SupportedInput::Mp3(path));
+                    },
+                    _ => return None
+
+                }
+            }
+            None => return None
+        }
+    }
+}
+
+
 fn parse_config() -> AppSettings {
 
     // Parse config file
@@ -37,6 +71,15 @@ fn parse_config() -> AppSettings {
         output_path
     }
 }
+
+fn get_destination_path(output_path: &PathBuf, input: SupportedInput) {
+    match input {
+        SupportedInput::Dir(path) => println!("Dir"),
+        SupportedInput::Zip(path) => println!("Zip"),
+        SupportedInput::Mp3(path) => println!("Mp3")
+    }
+}
+
 fn main() {
     
     let settings: AppSettings = parse_config();
@@ -44,22 +87,14 @@ fn main() {
     for entry in fs::read_dir(&settings.input_path).unwrap() {
         let entry = entry.unwrap();
 
-        if entry.path().is_dir() {
-            println!("Directory");
-            continue;
-        }
+        let entry = SupportedInput::from(entry.path());
 
-        match entry.path().extension() {
-            Some(extension_str) => {
-                match extension_str.to_str().unwrap() {
-                    "zip" => println!("Zip"),
-                    "mp3" => println!("Mp3"),
-                    _ => println!("{:?} unsupported. skipping... ", extension_str)
-                }
-            }
-            None => ()
+        match entry {
+            Some(input) => {
+                get_destination_path(&settings.output_path, input);
+            },
+            None => println!("Skipping unsupported input...")
         }
-        
 
     }
 
