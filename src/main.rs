@@ -1,5 +1,6 @@
 use std::io::Error;
 
+use std::path::Path;
 use std::{fs, path::PathBuf, str::FromStr};
 
 use std::fs::File;
@@ -20,6 +21,8 @@ enum SupportedInput {
     ZipInput(PathBuf),
     Mp3Input(PathBuf)
 }
+
+
 
 
 impl SupportedInput {
@@ -49,6 +52,48 @@ impl SupportedInput {
     }
 }
 
+struct SortableTag {
+    title: String,
+    album: Option<String>,
+    artist: Option<String>,
+    album_artist: Option<String>
+}
+
+impl SortableTag {
+    fn from(tag: Tag) -> Option<Self>{
+
+        if tag.title().is_none() {
+            return None;
+        }
+
+        // At least one of these must exist
+        if tag.artist().is_none() && tag.album_artist().is_none() {
+            return None;
+        }
+
+        return Some(SortableTag {
+            title: String::from(tag.title()?),
+            album: Some(String::from(tag.album()?)),
+            artist: Some(String::from(tag.artist()?)),
+            album_artist: Some(String::from(tag.album_artist()?))
+        });
+
+    }
+
+    fn path(&self) -> PathBuf {
+
+        let mut output = PathBuf::new();
+        
+        let root_folder = self.album_artist.as_ref().unwrap_or_else(|| self.album.as_ref().unwrap());
+        output.push(root_folder.clone());
+
+        if let Some(album) = &self.album {
+            output.push(album.clone());
+        }
+
+        return output;
+    }
+}
 
 fn parse_config() -> AppSettings {
 
@@ -91,7 +136,9 @@ fn get_destination_path(output_folder_path: &PathBuf, file: SupportedInput) -> R
 
             let mut zip = ZipArchive::new(zip)?;
             
-            // Find an Mp3 file to determine destination path
+            let mut sortable_tag: Option<SortableTag> = None;
+
+            // Find an Mp3 in the zip to get metadata
             for i in 0..zip.len() {
                 
                 
@@ -127,18 +174,17 @@ fn get_destination_path(output_folder_path: &PathBuf, file: SupportedInput) -> R
                 let file = &mut zip.by_index_seek(i)?;
                 
                 let tag = Tag::read_from2(file).unwrap();
-
-                println!("{:?} {:?}", tag.artist(), tag.album_artist());
                 
+                sortable_tag = SortableTag::from(tag);
                 
+                if sortable_tag.is_none() {
+                    continue;
+                }
                 
-                
-                
-                
-                //print!("{:?}", filepath.extension());
+                break;
             }
             
-            return Result::Ok(PathBuf::new());
+            return Ok(sortable_tag.unwrap().path());
         },
         SupportedInput::Mp3Input(path) => todo!()
     }
@@ -167,6 +213,8 @@ fn main() {
                 }
 
                 let path = path.unwrap();
+                
+                println!("{:?}", path);
 
             },
             None => println!("Skipping unsupported input...")
