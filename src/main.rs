@@ -1,6 +1,5 @@
 use std::io::Error;
 
-use std::path::Path;
 use std::{fs, path::PathBuf, str::FromStr};
 
 use std::fs::File;
@@ -125,6 +124,8 @@ fn parse_config() -> AppSettings {
         output_path
     }
 }
+
+
 
 fn get_destination_path(output_folder_path: &PathBuf, file: SupportedInput) -> Result<PathBuf, Error> {
     match file {
