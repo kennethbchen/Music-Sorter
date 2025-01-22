@@ -142,29 +142,14 @@ fn get_destination_path(output_folder_path: &PathBuf, file: SupportedInput) -> R
             // Find an Mp3 in the zip to get metadata
             for i in 0..zip.len() {
                 
-                
-                
                 // Check if this file is an mp3
                 {
-                    let file = zip.by_index(i)?;
+                    let Ok(file) = zip.by_index(i) else {continue};
 
-                    let filepath = file.enclosed_name();
+                    let Some(filepath) = file.enclosed_name() else {continue};
 
-                    match &filepath {
-                        Option::Some(_) => (),
-                        Option::None => {continue;}
-                    }
-
-                    let filepath = filepath.unwrap();
-
-                    let file = SupportedInput::from(filepath);
-
-                    if file.is_none() {
-                        continue;
-                    }
-
-                    let file = file.unwrap();
-
+                    let Some(file) = SupportedInput::from(filepath) else {continue};
+                    
                     match file {
                         SupportedInput::Mp3Input(_) => (),
                         _ => continue
@@ -172,9 +157,9 @@ fn get_destination_path(output_folder_path: &PathBuf, file: SupportedInput) -> R
                 }
                 
                 // Get song metadata
-                let file = &mut zip.by_index_seek(i)?;
+                let Ok(file) = &mut zip.by_index_seek(i) else {continue};
                 
-                let tag = Tag::read_from2(file).unwrap();
+                let Ok(tag) = Tag::read_from2(file) else {continue};
                 
                 sortable_tag = SortableTag::from(tag);
                 
