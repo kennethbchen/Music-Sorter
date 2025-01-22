@@ -21,9 +21,6 @@ enum SupportedInput {
     Mp3Input(PathBuf)
 }
 
-
-
-
 impl SupportedInput {
     fn from(path: PathBuf) -> Option<SupportedInput> {
 
@@ -126,16 +123,15 @@ fn parse_config() -> AppSettings {
 }
 
 
-
-fn get_destination_path(output_folder_path: &PathBuf, file: SupportedInput) -> Result<PathBuf, Error> {
+fn get_destination_path(output_folder_path: &PathBuf, file: SupportedInput) -> Option<PathBuf> {
     match file {
         SupportedInput::DirInput(path) => todo!(),
         SupportedInput::ZipInput(path) => {
             
 
-            let zip = File::open(path)?;
+            let Ok(zip) = File::open(path) else {return None};
 
-            let mut zip = ZipArchive::new(zip)?;
+            let Ok(mut zip) = ZipArchive::new(zip) else {return None};
             
             let mut sortable_tag: Option<SortableTag> = None;
 
@@ -170,7 +166,7 @@ fn get_destination_path(output_folder_path: &PathBuf, file: SupportedInput) -> R
                 break;
             }
             
-            return Ok(sortable_tag.unwrap().path());
+            return Some(sortable_tag.unwrap().path());
         },
         SupportedInput::Mp3Input(path) => todo!()
     }
@@ -181,25 +177,19 @@ fn main() {
     let settings: AppSettings = parse_config();
 
     for entry in fs::read_dir(&settings.input_path).unwrap() {
-        let entry = entry.unwrap();
+        
+        let Ok(entry) = entry else {continue};
 
         let entry = SupportedInput::from(entry.path());
 
         match entry {
             Some(input) => {
 
-                let path = get_destination_path(&settings.output_path, input);
+                let Some(path) = get_destination_path(&settings.output_path, input) else {
+                    println!("Error getting path, skipping");
+                    continue;
+                };
 
-                match path {
-                    Result::Ok(_) => (),
-                    Result::Err(_) => {
-                        println!("Error getting path, skipping");
-                        continue;
-                    }
-                }
-
-                let path = path.unwrap();
-                
                 println!("{:?}", path);
 
             },
