@@ -1,18 +1,22 @@
 use std::io::Error;
 
+use std::os::windows::process;
+use std::process::Output;
 use std::{fs, path::PathBuf, str::FromStr};
 
 use std::fs::File;
 
 use config::Config;
 
+use zip::result::ZipError;
 use zip::ZipArchive;
 
 use id3::{Tag, TagLike};
 
 struct AppSettings {
     input_path: PathBuf,
-    output_path: PathBuf
+    output_path: PathBuf,
+    processed_input_path: PathBuf
 }
 
 enum SupportedInput {
@@ -49,9 +53,9 @@ impl SupportedInput {
 }
 
 struct SortableTag {
-    title: String,
+    _title: String,
     album: Option<String>,
-    artist: Option<String>,
+    _artist: Option<String>,
     album_artist: Option<String>
 }
 
@@ -68,9 +72,9 @@ impl SortableTag {
         }
 
         return Some(SortableTag {
-            title: String::from(tag.title()?),
+            _title: String::from(tag.title()?),
             album: Some(String::from(tag.album()?)),
-            artist: Some(String::from(tag.artist()?)),
+            _artist: Some(String::from(tag.artist()?)),
             album_artist: Some(String::from(tag.album_artist()?))
         });
 
@@ -112,18 +116,23 @@ fn parse_config() -> AppSettings {
     let output_path = &config.get_string("output_folder").unwrap();
     let output_path: PathBuf = PathBuf::from_str(output_path).unwrap();
 
+    let processed_input_path = &config.get_string("processed_input_folder").unwrap();
+    let processed_input_path: PathBuf = PathBuf::from_str(processed_input_path).unwrap();
+
     // Validate
     assert!(input_path.try_exists().expect("Could not check if input folder exists."), "Input folder does not exist!");
     assert!(output_path.try_exists().expect("Could not check if output folder exists."), "Output folder does not exist!");
+    assert!(processed_input_path.try_exists().expect("Could not check if processed input folder exists."), "Processed input folder does not exist!");
 
     return AppSettings {
         input_path,
-        output_path
+        output_path,
+        processed_input_path
     }
 }
 
 
-fn get_destination_path(output_folder_path: &PathBuf, file: SupportedInput) -> Option<PathBuf> {
+fn get_destination_path(output_folder_path: &PathBuf, file: &SupportedInput) -> Option<PathBuf> {
     match file {
         SupportedInput::DirInput(path) => todo!(),
         SupportedInput::ZipInput(path) => {
@@ -159,21 +168,26 @@ fn get_destination_path(output_folder_path: &PathBuf, file: SupportedInput) -> O
                 
                 sortable_tag = SortableTag::from(tag);
                 
-                if sortable_tag.is_none() {
-                    continue;
+                match sortable_tag {
+                    Some(_) => {break},
+                    _ => {continue}
                 }
-                
-                break;
+
             }
             
-            return Some(sortable_tag.unwrap().path());
+            let Some(sortable_tag) = sortable_tag else {return None};
+
+            let mut output = output_folder_path.clone();
+            output.push(sortable_tag.path());
+
+            return Some(output);
         },
         SupportedInput::Mp3Input(path) => todo!()
     }
 }
 
 fn main() {
-    
+
     let settings: AppSettings = parse_config();
 
     for entry in fs::read_dir(&settings.input_path).unwrap() {
@@ -185,12 +199,53 @@ fn main() {
         match entry {
             Some(input) => {
 
-                let Some(path) = get_destination_path(&settings.output_path, input) else {
-                    println!("Error getting path, skipping");
+                let Some(destination_path) = get_destination_path(&settings.output_path, &input) else {
+                    println!("Error getting destination path, skipping");
                     continue;
                 };
 
-                println!("{:?}", path);
+                match input {
+                    SupportedInput::ZipInput(input_path) => {
+                        
+                        
+                        // Extract every file to destination path
+                        let Ok(zip) = File::open(&input_path) else {
+                            println!("Couldn't open {:?}. Skipping...", &input_path);
+                            continue;
+                        };
+
+                        let Ok(mut zip) = ZipArchive::new(zip) else {
+                            println!("Couldn't open {:?} as a zip file. Skipping...", &input_path);
+                            continue;
+                        };
+                        
+                        
+                        let Ok(_) = zip.extract(&destination_path) else {
+                            println!("Error extracting {:?}. Skipping...", &input_path);
+                            continue;
+                        };
+                         
+
+                        println!("Extracted {:?} to {:?}", &input_path, &destination_path);
+                        println!();
+                        
+                        /*
+                        if let Err(er) = fs::rename(&input_path, &settings.processed_input_path) {
+                            
+                            println!("Error moving {:?} to {:?}", &input_path, &settings.processed_input_path);
+                            println!("{}", er);
+                            println!();
+                            continue;
+                        } else {
+                            println!("Moved {:?} to ", &input_path);
+                            
+                        };
+                        */
+                        
+                        
+                    },
+                    _ => todo!()
+                }
 
             },
             None => println!("Skipping unsupported input...")
