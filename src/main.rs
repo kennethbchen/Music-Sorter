@@ -207,40 +207,48 @@ fn main() {
                 match input {
                     SupportedInput::ZipInput(input_path) => {
                         
-                        
-                        // Extract every file to destination path
-                        let Ok(zip) = File::open(&input_path) else {
-                            println!("Couldn't open {:?}. Skipping...", &input_path);
-                            continue;
-                        };
+                        {
+                            // Extract every file to destination path
+                            let Ok(zip) = File::open(&input_path) else {
+                                println!("Couldn't open {:?}. Skipping...", &input_path);
+                                continue;
+                            };
 
-                        let Ok(mut zip) = ZipArchive::new(zip) else {
-                            println!("Couldn't open {:?} as a zip file. Skipping...", &input_path);
-                            continue;
-                        };
-                        
-                        
-                        let Ok(_) = zip.extract(&destination_path) else {
-                            println!("Error extracting {:?}. Skipping...", &input_path);
-                            continue;
-                        };
-                         
+                            let Ok(mut zip) = ZipArchive::new(zip) else {
+                                println!("Couldn't open {:?} as a zip file. Skipping...", &input_path);
+                                continue;
+                            };
+                            
+                            
+                            let Ok(_) = zip.extract(&destination_path) else {
+                                println!("Error extracting {:?}. Skipping...", &input_path);
+                                continue;
+                            };
+                            
+                            println!("Extracted {:?} to {:?}", &input_path, &destination_path);
 
-                        println!("Extracted {:?} to {:?}", &input_path, &destination_path);
+                        }
+                        
+                        {
+                            // Move the input zip to processed input folder
+                            let Some(filename) = input_path.file_name() else {
+                                println!("Error moving {:?} to {:?}", &input_path, &settings.processed_input_path);
+                                continue;
+                            };
+                            
+                            if let Err(er) = fs::rename(&input_path, &settings.processed_input_path.join(filename)) {
+                                println!("Error moving {:?} to {:?}", &input_path, &settings.processed_input_path);
+                                println!("{}", er);
+                                println!();
+                                continue;
+
+                            } else {
+                                println!("Moved {:?} to {:?}", &input_path, &settings.processed_input_path.join(filename));
+                                
+                            };
+                        }
+
                         println!();
-                        
-                        /*
-                        if let Err(er) = fs::rename(&input_path, &settings.processed_input_path) {
-                            
-                            println!("Error moving {:?} to {:?}", &input_path, &settings.processed_input_path);
-                            println!("{}", er);
-                            println!();
-                            continue;
-                        } else {
-                            println!("Moved {:?} to ", &input_path);
-                            
-                        };
-                        */
                         
                         
                     },
