@@ -1,0 +1,3 @@
+input_folder = "ignore/input"
+output_folder = "ignore/output"
+processed_input_folder = "ignore/processed"
