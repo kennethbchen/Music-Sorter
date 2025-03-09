@@ -200,7 +200,24 @@ fn get_destination_path(output_folder_path: &PathBuf, file: &SupportedInput) -> 
 
             return Some(output);
         }
-        SupportedInput::Mp3Input(path) => todo!(),
+        SupportedInput::Mp3Input(path) => {
+            let Ok(file) = File::open(path) else {
+                return None;
+            };
+
+            let Ok(tag) = Tag::read_from2(file) else {
+                return None;
+            };
+
+            let Some(sortable_tag) = SortableTag::from(tag) else {
+                return None;
+            };
+
+            let mut output = output_folder_path.clone();
+            output.push(sortable_tag.path());
+
+            return Some(output);
+        }
     }
 }
 
@@ -277,7 +294,12 @@ fn main() {
 
                         println!();
                     }
-                    _ => todo!(),
+                    SupportedInput::Mp3Input(input_path) => {
+                        println!("Moved {:?} to {:?}", &input_path, &destination_path);
+                    }
+                    _ => {
+                        todo!()
+                    }
                 }
             }
             None => println!("Skipping unsupported input..."),
