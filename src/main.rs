@@ -242,7 +242,10 @@ fn main() {
                         {
                             // Extract every file to destination path
                             let Ok(zip) = File::open(&input_path) else {
-                                println!("Couldn't open {:?}. Skipping...", &input_path);
+                                println!(
+                                    "Error getting filename for \"{:?}\". Skipping...",
+                                    &input_path
+                                );
                                 continue;
                             };
 
@@ -277,7 +280,7 @@ fn main() {
                                 &settings.processed_input_path.join(filename),
                             ) {
                                 println!(
-                                    "Error moving {:?} to {:?}",
+                                    "Error moving processed file {:?} to {:?}",
                                     &input_path, &settings.processed_input_path
                                 );
                                 println!("{}", er);
@@ -295,7 +298,30 @@ fn main() {
                         println!();
                     }
                     SupportedInput::Mp3Input(input_path) => {
-                        println!("Moved {:?} to {:?}", &input_path, &destination_path);
+                        let Some(filename) = input_path.file_name() else {
+                            println!(
+                                "Error getting filename for \"{:?}\". Skipping...",
+                                &input_path
+                            );
+                            continue;
+                        };
+
+                        // Create destination folder if it doesn't exist
+                        if let Err(er) = fs::create_dir_all(&destination_path) {
+                            println!(
+                                "Error creating destination path: {:?} for input: \"{:?}\". Skipping...",
+                                &destination_path, &input_path
+                            )
+                        }
+                        // Move the file to destination folder
+                        if let Err(er) = fs::rename(&input_path, &destination_path.join(filename)) {
+                            println!("Error moving {:?} to {:?}", &input_path, &destination_path);
+                            println!("{}", er);
+                            println!();
+                            continue;
+                        } else {
+                            println!("Moved {:?} to {:?}", &input_path, &destination_path);
+                        };
                     }
                     _ => {
                         todo!()
